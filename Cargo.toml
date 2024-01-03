@@ -4,6 +4,7 @@ members = [
     # Libraries
     "crates/libs/auth",
     "crates/libs/grpc",
+    "crates/libs/core",
     # Services
     "crates/services/client",
     "crates/services/server"

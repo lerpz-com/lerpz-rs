@@ -1,8 +1,9 @@
+use auth::jwt::verify_access_token;
 use grpc::{
 	hello_server::{Hello, HelloServer},
 	HelloRequest, HelloResponse,
 };
-use tonic::{metadata::MetadataValue, transport::Server};
+use tonic::transport::Server;
 
 #[derive(Default, Clone)]
 pub struct HelloService;
@@ -36,16 +37,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn check_auth(req: tonic::Request<()>) -> tonic::Result<tonic::Request<()>, tonic::Status> {
-	let valid_token: MetadataValue<_> = "Bearer some-auth-token".parse().unwrap();
-
-	let token = match req.metadata().get("authorization") {
+	let token_raw = match req.metadata().get("authorization") {
 		Some(token) => token,
-		_ => return Err(tonic::Status::unauthenticated("No valid auth token")),
+		None => return Err(tonic::Status::unauthenticated("No valid auth token")),
 	};
 
-	if token == valid_token {
-		Ok(req)
-	} else {
-		Err(tonic::Status::unauthenticated("Invalid auth token"))
-	}
+	let token = match token_raw.to_str() {
+		Ok(token) => token,
+		Err(_) => {
+			return Err(tonic::Status::unauthenticated(
+				"Token contains invalid characters",
+			))
+		}
+	};
+
+	let _decoded = match verify_access_token(token) {
+		Ok(decoded) => decoded,
+		Err(_) => return Err(tonic::Status::unauthenticated("Invalid token")),
+	};
+
+	// TODO: Role authorization/scope
+
+	Ok(req)
 }
