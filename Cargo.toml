@@ -1,3 +1,10 @@
 [workspace]
 resolver = "2"
-members = ["crates/libs/auth", "crates/libs/grpc", "crates/services/client", "crates/services/server"]
+members = [
+    # Libraries
+    "crates/libs/auth",
+    "crates/libs/grpc",
+    # Services
+    "crates/services/client",
+    "crates/services/server"
+]
