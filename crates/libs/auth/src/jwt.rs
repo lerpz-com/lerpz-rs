@@ -3,6 +3,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Valid
 use once_cell::sync::Lazy;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 static KEYS: Lazy<Keys> = Lazy::new(|| {
@@ -12,22 +13,19 @@ static KEYS: Lazy<Keys> = Lazy::new(|| {
 	Keys { encoding, decoding }
 });
 
-const AUD: &'static str = "lerpz.com";
-const ISS: &'static str = "auth.lerpz.com";
+struct Keys {
+	encoding: EncodingKey,
+	decoding: DecodingKey,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Claims {
 	pub sub: String,
 	pub iss: String,
-	pub aud: String,
-	pub exp: usize,
-	pub iat: usize,
+	pub aud: Audience,
+	pub exp: i64,
+	pub iat: i64,
 	pub user: JwtUser,
-}
-
-struct Keys {
-	encoding: EncodingKey,
-	decoding: DecodingKey,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -36,6 +34,12 @@ pub struct JwtUser {
 	pub username: String,
 	pub email: String,
 	pub role: UserRole,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum Audience {
+	#[serde(rename = "file-upload")]
+	FileUpload,
 }
 
 impl From<User> for JwtUser {
@@ -49,6 +53,14 @@ impl From<User> for JwtUser {
 	}
 }
 
+impl Display for Audience {
+	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Self::FileUpload => write!(f, "file-upload"),
+		}
+	}
+}
+
 pub fn generate_refresh_token() -> String {
 	let rng = thread_rng();
 	rng.sample_iter(&Alphanumeric)
@@ -57,13 +69,16 @@ pub fn generate_refresh_token() -> String {
 		.collect()
 }
 
-pub fn generate_access_token(user: impl Into<JwtUser>) -> jsonwebtoken::errors::Result<String> {
+pub fn generate_access_token(
+	user: impl Into<JwtUser>,
+	aud: Audience,
+) -> jsonwebtoken::errors::Result<String> {
 	let claims = Claims {
-		sub: uuid::Uuid::new_v4().to_string(),
-		iss: ISS.to_string(),
-		aud: AUD.to_string(),
-		exp: (chrono::Utc::now().timestamp() + 60 * 15) as usize,
-		iat: chrono::Utc::now().timestamp() as usize,
+		sub: Uuid::new_v4().to_string(),
+		iss: "api.lerpz.com".to_string(),
+		aud,
+		exp: (chrono::Utc::now().timestamp() + 60 * 15),
+		iat: chrono::Utc::now().timestamp(),
 		user: user.into(),
 	};
 
