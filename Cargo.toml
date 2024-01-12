@@ -3,9 +3,8 @@ resolver = "2"
 members = [
     # Libraries
     "crates/libs/auth",
-    "crates/libs/grpc",
+    "crates/libs/rpc",
     "crates/libs/core",
     # Services
-    "crates/services/client",
-    "crates/services/server"
+    "crates/services/web-server"
 ]

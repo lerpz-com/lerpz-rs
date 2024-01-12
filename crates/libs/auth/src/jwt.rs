@@ -6,10 +6,9 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 static KEYS: Lazy<Keys> = Lazy::new(|| {
-	// NOTE: Secret is hardcoded for now, but should be loaded from a file or env variable.
-	let secret = b"secret";
-	let encoding = jsonwebtoken::EncodingKey::from_secret(secret);
-	let decoding = jsonwebtoken::DecodingKey::from_secret(secret);
+	let secret = std::env::var("JWT_SECRET").expect("\"JWT_SECRET\" must be set");
+	let encoding = EncodingKey::from_secret(secret.as_bytes());
+	let decoding = DecodingKey::from_secret(secret.as_bytes());
 	Keys { encoding, decoding }
 });
 
