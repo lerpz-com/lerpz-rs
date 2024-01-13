@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+auth = { path = "../../libs/auth" }
+rpc = { path = "../../libs/rpc" }
 axum = { version = "0.7", features = ["tokio"] }
 futures-util = "0.3.30"
 tokio = { version = "1.35", features = ["full"] }

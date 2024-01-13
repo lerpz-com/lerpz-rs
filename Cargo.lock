@@ -716,15 +716,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4271d37baee1b8c7e4b708028c57d816cf9d2434acb33a549475f78c181f6253"
 
 [[package]]
-name = "grpc"
-version = "0.1.0"
-dependencies = [
- "prost",
- "tonic",
- "tonic-build",
-]
-
-[[package]]
 name = "h2"
 version = "0.3.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1653,6 +1644,15 @@ dependencies = [
  "spin 0.9.8",
  "untrusted",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "rpc"
+version = "0.1.0"
+dependencies = [
+ "prost",
+ "tonic",
+ "tonic-build",
 ]
 
 [[package]]
@@ -2713,8 +2713,10 @@ checksum = "4d91413b1c31d7539ba5ef2451af3f0b833a005eb27a631cec32bc0635a8602b"
 name = "web-server"
 version = "0.1.0"
 dependencies = [
+ "auth",
  "axum 0.7.3",
  "futures-util",
+ "rpc",
  "tokio",
  "tower",
  "tower-http",

@@ -36,6 +36,7 @@ where
 		let future = self.inner.call(request);
 		Box::pin(async move {
 			let response: Response = future.await?;
+
 			Ok(response)
 		})
 	}
