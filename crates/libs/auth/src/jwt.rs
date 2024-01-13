@@ -26,14 +26,14 @@ pub struct JwtUser {
 pub struct Claims {
 	sub: String,
 	iss: String,
-	aud: Audience,
+	aud: Vec<Services>,
 	exp: i64,
 	iat: i64,
 	pub user: JwtUser,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub enum Audience {
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Services {
 	#[serde(rename = "file-upload")]
 	FileUpload,
 }
@@ -67,7 +67,7 @@ impl JwtUtil {
 	pub fn generate_access_token(
 		&self,
 		user: impl Into<JwtUser>,
-		aud: Audience,
+		aud: &[Services],
 	) -> jsonwebtoken::errors::Result<String> {
 		let header = &Header::new(Algorithm::EdDSA);
 		let claims = &Claims::new(user, aud);
@@ -79,12 +79,12 @@ impl JwtUtil {
 	pub fn verify_access_token(
 		&self,
 		token: &str,
-		audience: Audience,
+		audience: &[Services],
 	) -> jsonwebtoken::errors::Result<TokenData<Claims>> {
 		let mut validation = Validation::new(Algorithm::EdDSA);
 		validation.validate_nbf = true;
 		validation.validate_aud = true;
-		validation.set_audience(&[audience]);
+		validation.set_audience(audience);
 		let decoding_key = &self.keys.decoding;
 
 		jsonwebtoken::decode::<Claims>(token, decoding_key, &validation)
@@ -103,11 +103,11 @@ impl From<User> for JwtUser {
 }
 
 impl Claims {
-	pub fn new(user: impl Into<JwtUser>, audience: Audience) -> Self {
+	pub fn new(user: impl Into<JwtUser>, audience: &[Services]) -> Self {
 		Self {
 			sub: Uuid::new_v4().to_string(),
 			iss: "api.lerpz.com".to_string(),
-			aud: audience,
+			aud: audience.into(),
 			exp: chrono::Utc::now().timestamp() + 60 * 15,
 			iat: chrono::Utc::now().timestamp(),
 			user: user.into(),
@@ -115,7 +115,15 @@ impl Claims {
 	}
 }
 
-impl Display for Audience {
+impl<'a> Into<&'a [&'a str]> for Services {
+	fn into(self) -> &'a [&'a str] {
+		match self {
+			Self::FileUpload => &["file-upload"],
+		}
+	}
+}
+
+impl Display for Services {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			Self::FileUpload => write!(f, "file-upload"),
