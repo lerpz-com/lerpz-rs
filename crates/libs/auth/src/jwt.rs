@@ -1,31 +1,17 @@
 use core::models::user::{User, UserRole};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
-use once_cell::sync::Lazy;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Formatter};
+use std::fmt::Display;
 use uuid::Uuid;
-
-static KEYS: Lazy<Keys> = Lazy::new(|| {
-	let secret = std::env::var("JWT_SECRET").expect("\"JWT_SECRET\" must be set");
-	let encoding = EncodingKey::from_secret(secret.as_bytes());
-	let decoding = DecodingKey::from_secret(secret.as_bytes());
-	Keys { encoding, decoding }
-});
 
 struct Keys {
 	encoding: EncodingKey,
 	decoding: DecodingKey,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Claims {
-	pub sub: String,
-	pub iss: String,
-	pub aud: Audience,
-	pub exp: i64,
-	pub iat: i64,
-	pub user: JwtUser,
+pub struct JwtUtil {
+	keys: Keys,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -37,9 +23,72 @@ pub struct JwtUser {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Claims {
+	sub: String,
+	iss: String,
+	aud: Audience,
+	exp: i64,
+	iat: i64,
+	pub user: JwtUser,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Audience {
 	#[serde(rename = "file-upload")]
 	FileUpload,
+}
+
+impl From<&'_ str> for Keys {
+	fn from(secret: &str) -> Self {
+		let key = secret.as_bytes();
+
+		Self {
+			encoding: EncodingKey::from_secret(key),
+			decoding: DecodingKey::from_secret(key),
+		}
+	}
+}
+
+impl JwtUtil {
+	pub fn new(secret: &str) -> Self {
+		Self {
+			keys: Keys::from(secret),
+		}
+	}
+
+	pub fn generate_refresh_token() -> String {
+		let rng = thread_rng();
+		rng.sample_iter(&Alphanumeric)
+			.take(32)
+			.map(char::from)
+			.collect()
+	}
+
+	pub fn generate_access_token(
+		&self,
+		user: impl Into<JwtUser>,
+		aud: Audience,
+	) -> jsonwebtoken::errors::Result<String> {
+		let header = &Header::new(Algorithm::EdDSA);
+		let claims = &Claims::new(user, aud);
+		let encoding_key = &self.keys.encoding;
+
+		jsonwebtoken::encode(header, &claims, encoding_key)
+	}
+
+	pub fn verify_access_token(
+		&self,
+		token: &str,
+		audience: Audience,
+	) -> jsonwebtoken::errors::Result<TokenData<Claims>> {
+		let mut validation = Validation::new(Algorithm::EdDSA);
+		validation.validate_nbf = true;
+		validation.validate_aud = true;
+		validation.set_audience(&[audience]);
+		let decoding_key = &self.keys.decoding;
+
+		jsonwebtoken::decode::<Claims>(token, decoding_key, &validation)
+	}
 }
 
 impl From<User> for JwtUser {
@@ -53,41 +102,23 @@ impl From<User> for JwtUser {
 	}
 }
 
-impl Display for Audience {
-	fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-		match self {
-			Self::FileUpload => write!(f, "file-upload"),
+impl Claims {
+	pub fn new(user: impl Into<JwtUser>, audience: Audience) -> Self {
+		Self {
+			sub: Uuid::new_v4().to_string(),
+			iss: "api.lerpz.com".to_string(),
+			aud: audience,
+			exp: chrono::Utc::now().timestamp() + 60 * 15,
+			iat: chrono::Utc::now().timestamp(),
+			user: user.into(),
 		}
 	}
 }
 
-pub fn generate_refresh_token() -> String {
-	let rng = thread_rng();
-	rng.sample_iter(&Alphanumeric)
-		.take(32)
-		.map(char::from)
-		.collect()
-}
-
-pub fn generate_access_token(
-	user: impl Into<JwtUser>,
-	aud: Audience,
-) -> jsonwebtoken::errors::Result<String> {
-	let claims = Claims {
-		sub: Uuid::new_v4().to_string(),
-		iss: "api.lerpz.com".to_string(),
-		aud,
-		exp: (chrono::Utc::now().timestamp() + 60 * 15),
-		iat: chrono::Utc::now().timestamp(),
-		user: user.into(),
-	};
-
-	jsonwebtoken::encode(&Header::new(Algorithm::EdDSA), &claims, &KEYS.encoding)
-}
-
-pub fn verify_access_token(token: &str) -> jsonwebtoken::errors::Result<TokenData<Claims>> {
-	let mut validation = Validation::new(Algorithm::EdDSA);
-	validation.validate_nbf = true;
-
-	jsonwebtoken::decode::<Claims>(token, &KEYS.decoding, &validation)
+impl Display for Audience {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Self::FileUpload => write!(f, "file-upload"),
+		}
+	}
 }

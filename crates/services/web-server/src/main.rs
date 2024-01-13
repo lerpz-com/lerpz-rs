@@ -5,6 +5,7 @@ use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer};
 
 pub mod error;
+pub mod middleware;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -12,7 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let listener = tokio::net::TcpListener::bind(addr).await?;
 
 	let cors = CorsLayer::new()
-		.allow_methods(vec![Method::GET, Method::POST])
+		.allow_methods(vec![Method::GET, Method::POST, Method::DELETE, Method::PUT])
 		// TODO: change this to the actual origin
 		.allow_origin(Any);
 
