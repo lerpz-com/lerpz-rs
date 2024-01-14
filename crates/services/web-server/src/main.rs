@@ -1,21 +1,46 @@
-use std::net::Ipv4Addr;
+use std::net::{Ipv4Addr, SocketAddrV4};
 
-use axum::{http::Method, Router};
+use auth::jwt::keys::JwtKeys;
+use axum::{
+	http::{HeaderValue, Method},
+	Router,
+};
+use serde::Deserialize;
 use tower::ServiceBuilder;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 
+mod context;
 pub mod error;
-pub mod middleware;
+
+#[derive(Deserialize, Debug)]
+struct Environment {
+	private_key: String,
+	public_key: String,
+	api_origin: String,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+	tracing_subscriber::fmt::init();
+
+	dotenv::dotenv().ok();
+
+	let env = match envy::from_env::<Environment>() {
+		Ok(env) => env,
+		Err(e) => {
+			tracing::error!("Failed to load environment variables: {}", e);
+			std::process::exit(1);
+		}
+	};
+
+	let _keys = JwtKeys::from_ed_pem(env.private_key, env.public_key);
+
 	let addr = std::net::SocketAddr::from((Ipv4Addr::UNSPECIFIED, 8080));
 	let listener = tokio::net::TcpListener::bind(addr).await?;
 
 	let cors = CorsLayer::new()
 		.allow_methods(vec![Method::GET, Method::POST, Method::DELETE, Method::PUT])
-		// TODO: change this to the actual origin
-		.allow_origin(Any);
+		.allow_origin(env.api_origin.parse::<HeaderValue>().unwrap());
 
 	let service = ServiceBuilder::new().layer(cors);
 
