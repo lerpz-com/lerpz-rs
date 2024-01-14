@@ -4,17 +4,22 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# -- Local libs
 auth = { path = "../../libs/auth" }
 rpc = { path = "../../libs/rpc" }
+utils = { path = "../../libs/utils" }
+# -- Web
 axum = { version = "0.7", features = ["tokio"] }
-futures-util = "0.3.30"
+utoipa = { version = "4.2", features = ["uuid", "chrono"] }
+utoipa-swagger-ui = "6.0"
+# -- Async
 tokio = { version = "1.35", features = ["full"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["full"] }
+futures-util = "0.3"
+# -- Logging
 tracing = "0.1"
-utoipa = { version = "4.2", features = ["uuid", "chrono"] }
-utoipa-swagger-ui = "6.0"
-envy = "0.4.2"
-serde = "1.0.195"
-tracing-subscriber = "0.3.18"
-dotenv = "0.15.0"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+# -- Other
+serde = "1.0"
+tower-cookies = "0.10.0"

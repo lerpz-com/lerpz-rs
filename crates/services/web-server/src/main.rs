@@ -1,39 +1,27 @@
 use std::net::Ipv4Addr;
 
-use auth::jwt::keys::JwtKeys;
+use auth::token::keys::JwtKeys;
 use axum::{
 	http::{HeaderValue, Method},
 	Router,
 };
-use serde::Deserialize;
+use config::web_config;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
+use tracing_subscriber::EnvFilter;
 
-mod context;
-pub mod error;
-
-#[derive(Deserialize, Debug)]
-struct Environment {
-	public_key: String,
-	private_key: String,
-	api_origin: String,
-}
+mod config;
+mod controllers;
+mod error;
+mod middleware;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-	tracing_subscriber::fmt::init();
+	tracing_subscriber::fmt()
+		.with_env_filter(EnvFilter::from_default_env())
+		.init();
 
-	dotenv::dotenv().unwrap();
-
-	let env = match envy::from_env::<Environment>() {
-		Ok(env) => env,
-		Err(e) => {
-			tracing::error!("failed to load environment variables: {}", e);
-			std::process::exit(1);
-		}
-	};
-
-	let _keys = JwtKeys::from_ed_pem(env.public_key, env.private_key);
+	let _keys = JwtKeys::from_ed_pem(&web_config().PUBLIC_KEY, &web_config().PRIVATE_KEY);
 
 	let addr = std::net::SocketAddr::from((Ipv4Addr::UNSPECIFIED, 8080));
 	let listener = tokio::net::TcpListener::bind(addr).await?;
@@ -41,7 +29,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	let cors = CorsLayer::new()
 		.allow_methods(vec![Method::GET, Method::POST, Method::DELETE, Method::PUT])
 		.allow_origin(
-			env.api_origin
+			web_config()
+				.API_ORIGIN
 				.split(',')
 				.map(|e| e.parse().unwrap())
 				.collect::<Vec<HeaderValue>>(),

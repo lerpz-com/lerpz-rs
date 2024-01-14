@@ -1,4 +1,3 @@
-use auth::jwt::JwtDecoder;
 use axum::{
 	async_trait,
 	extract::FromRequestParts,
@@ -14,7 +13,7 @@ where
 {
 	type Rejection = StatusCode;
 
-	async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+	async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
 		let auth_header = parts
 			.headers
 			.get(header::AUTHORIZATION)
@@ -27,7 +26,6 @@ where
 	}
 }
 
-fn token_is_valid(token: &str) -> bool {
-	JwtDecoder::new(token).decode();
-	return true;
+fn token_is_valid(_token: &str) -> bool {
+	todo!()
 }

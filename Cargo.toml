@@ -7,4 +7,4 @@ members = [
     "crates/libs/core",
     # Services
     "crates/services/web-server"
-]
+, "crates/libs/utils"]

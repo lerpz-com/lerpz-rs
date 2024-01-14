@@ -17,7 +17,7 @@ pub fn generate_refresh_token() -> String {
 mod tests {
 	use core::models::user::UserRole;
 
-	use crate::jwt::{
+	use crate::token::{
 		claims::{JwtAudience, JwtIssuer, JwtUser},
 		decode::JwtDecoder,
 		encode::JwtEncoder,
