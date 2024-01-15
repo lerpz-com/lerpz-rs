@@ -1,5 +1,9 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use std::net::Ipv4Addr;
 
+use api_doc::ApiV1Doc;
 use auth::token::keys::JwtKeys;
 use axum::{
 	http::{HeaderValue, Method},
@@ -7,9 +11,13 @@ use axum::{
 };
 use config::web_config;
 use tower::ServiceBuilder;
+use tower_cookies::CookieManagerLayer;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::EnvFilter;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
+mod api_doc;
 mod config;
 mod controllers;
 mod error;
@@ -36,9 +44,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 				.collect::<Vec<HeaderValue>>(),
 		);
 
-	let service = ServiceBuilder::new().layer(cors);
+	let service = ServiceBuilder::new()
+		.layer(CookieManagerLayer::new())
+		.layer(cors);
 
-	let app = Router::new().layer(service);
+	let app = Router::new()
+		.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiV1Doc::openapi()))
+		.layer(service);
 
 	axum::serve(listener, app.into_make_service())
 		.with_graceful_shutdown(shutdown_signal())

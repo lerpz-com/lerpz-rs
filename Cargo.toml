@@ -5,6 +5,8 @@ members = [
     "crates/libs/auth",
     "crates/libs/rpc",
     "crates/libs/core",
+    "crates/libs/utils",
     # Services
-    "crates/services/web-server"
-, "crates/libs/utils"]
+    "crates/services/web-server",
+    "crates/services/account-server"
+]
