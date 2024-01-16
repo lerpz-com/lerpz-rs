@@ -29,13 +29,13 @@ where
 	pub(crate) detail: Option<D>,
 	/// The acctual error that occured.
 	///
-	/// There might no be an error, in which case
-	/// this field is set to `None`.
+	/// There might no be an acctual error,
+	/// in which case this field is set to `None`.
 	///
-	/// Should never be sent to the client for
-	/// security reason. This is why it is skipped.
+	/// Should never be exposed to the
+	/// client for security reasons.
 	#[serde(skip)]
-	pub(crate) error: Option<anyhow::Error>,
+	pub(crate) inner: Option<anyhow::Error>,
 	/// ID of the error send to the client.
 	///
 	/// Used to identify server errors in the logs.
@@ -54,7 +54,7 @@ where
 	fn into_response(mut self) -> Response {
 		if self.status_code.is_server_error() {
 			self.log_id = Some(uuid::Uuid::new_v4());
-			if let Some(error) = self.error.as_ref() {
+			if let Some(error) = self.inner.as_ref() {
 				tracing::error!("({:?}) - SERVER ERROR: {}", self.log_id, error);
 			} else {
 				tracing::error!("({:?}) - SERVER ERROR: {:?}", self.log_id, self.message);
@@ -77,7 +77,7 @@ where
 			header: String::from("Internal Server Error"),
 			message: String::from("If this issue persists, please contact the administrator."),
 			detail: None,
-			error: Some(value.into()),
+			inner: Some(value.into()),
 			log_id: None, // This will be set in `into_response`.
 		}
 	}
@@ -96,7 +96,7 @@ where
 			header: String::from(header),
 			message: String::from(message),
 			detail: None,
-			error: None,
+			inner: None,
 			log_id: None,
 		}
 	}
@@ -115,13 +115,15 @@ where
 	where
 		E: Into<anyhow::Error>,
 	{
-		self.error = Some(error.into());
+		self.inner = Some(error.into());
 		self
 	}
 }
 
 #[cfg(test)]
 mod test {
+	use axum::handler::Handler;
+
 	use super::*;
 
 	#[derive(Serialize)]
@@ -145,7 +147,7 @@ mod test {
 
 		// `log_id` should only be set when turned into a response.
 		assert!(error.log_id.is_none());
-		assert!(error.error.is_some());
+		assert!(error.inner.is_some());
 
 		let response = error.into_response();
 		assert!(response.status().is_server_error());
@@ -154,13 +156,15 @@ mod test {
 	}
 
 	#[test]
-	fn any_error_to_handler_error() -> HandlerResult<(), HandlerError<()>> {
-		"123".parse::<i32>()?;
-		Ok(())
-	}
+	fn any_error_to_handler_error() {
+		let example_handler = || -> HandlerResult<(), HandlerError<()>> {
+			"abc".parse::<i32>()?;
+			Ok(())
+		};
+		assert!(example_handler().is_err());
 
-	fn any_error_to_handler_error_2() -> anyhow::Result<()> {
-		"123".parse::<i32>()?;
-		Ok(())
+		let error = example_handler().unwrap_err();
+		assert!(error.status_code.is_server_error());
+		assert!(error.inner.is_some())
 	}
 }
