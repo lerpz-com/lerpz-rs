@@ -2,6 +2,12 @@ use std::sync::OnceLock;
 
 use utils::env::get_env;
 
+/// Generates a new [`Config`] from the environment.
+///
+/// This stores the [`Config`] in a [`OnceLock`] so that
+/// it is only generated once. This allows you to call
+/// this function each time you need data from the [`Config`]
+/// without having to worry about performance.
 pub fn web_config() -> &'static Config {
 	static ENVIRONMENT: OnceLock<Config> = OnceLock::new();
 
@@ -10,6 +16,7 @@ pub fn web_config() -> &'static Config {
 	})
 }
 
+/// Configuratio for the web server.
 #[allow(non_snake_case)]
 pub struct Config {
 	pub PUBLIC_KEY: String,
@@ -19,6 +26,10 @@ pub struct Config {
 }
 
 impl Config {
+	/// Generates a new [`Config`] from the environment.
+	///
+	/// Returns an error if any of the environment
+	/// variables are missing.
 	pub fn from_env() -> utils::env::Result<Config> {
 		Ok(Config {
 			PUBLIC_KEY: get_env("PUBLIC_KEY")?,
