@@ -1,30 +1,34 @@
 use core::models::user::{User, UserRole};
-use std::fmt::Display;
+use std::{
+	collections::HashSet,
+	fmt::{self, Display, Formatter},
+};
 
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Claims {
-	pub sub: Uuid,
+pub struct TokenClaims {
+	pub sub: uuid::Uuid,
 	pub exp: i64,
 	pub nbf: i64,
 	pub iat: i64,
-	pub iss: JwtIssuer,
-	pub aud: JwtAudience,
+	#[serde(skip_serializing_if = "HashSet::is_empty")]
+	pub iss: HashSet<JwtIssuer>,
+	#[serde(skip_serializing_if = "HashSet::is_empty")]
+	pub aud: HashSet<JwtAudience>,
 	pub user: JwtUser,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct JwtUser {
-	pub id: Uuid,
+	pub id: uuid::Uuid,
 	pub username: String,
 	pub email: String,
 	pub role: UserRole,
 }
 
 #[non_exhaustive]
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum JwtAudience {
 	#[serde(rename = "https://lerpz.com")]
 	MainWebsite,
@@ -34,22 +38,22 @@ pub enum JwtAudience {
 	Dashboard,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum JwtIssuer {
 	#[serde(rename = "https://api.lerpz.com")]
 	API,
 }
 
-impl Claims {
+impl TokenClaims {
 	pub fn new(user: impl Into<JwtUser>) -> Self {
 		Self {
-			sub: Uuid::new_v4(),
+			sub: uuid::Uuid::new_v4(),
 			exp: chrono::Utc::now().timestamp() + 60 * 15,
 			nbf: chrono::Utc::now().timestamp(),
 			iat: chrono::Utc::now().timestamp(),
-			iss: JwtIssuer::API,
-			aud: JwtAudience::MainWebsite,
+			iss: HashSet::new(),
+			aud: HashSet::new(),
 			user: user.into(),
 		}
 	}
@@ -66,34 +70,34 @@ impl From<User> for JwtUser {
 	}
 }
 
-impl From<JwtUser> for Claims {
+impl From<JwtUser> for TokenClaims {
 	fn from(user: JwtUser) -> Self {
 		Self {
-			sub: Uuid::new_v4(),
+			sub: uuid::Uuid::new_v4(),
 			exp: chrono::Utc::now().timestamp() + 60 * 15,
 			nbf: chrono::Utc::now().timestamp(),
 			iat: chrono::Utc::now().timestamp(),
-			iss: JwtIssuer::API,
-			aud: JwtAudience::MainWebsite,
+			iss: HashSet::new(),
+			aud: HashSet::new(),
 			user,
 		}
 	}
 }
 
 impl Display for JwtAudience {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		match self {
-			JwtAudience::MainWebsite => write!(f, "{}", "https://lerpz.com"),
-			JwtAudience::Account => write!(f, "{}", "https://account.lerpz.com"),
-			JwtAudience::Dashboard => write!(f, "{}", "https://dashboard.lerpz.com"),
+			Self::MainWebsite => write!(f, "https://lerpz.com"),
+			Self::Account => write!(f, "https://account.lerpz.com"),
+			Self::Dashboard => write!(f, "https://dashboard.lerpz.com"),
 		}
 	}
 }
 
 impl Display for JwtIssuer {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		match self {
-			JwtIssuer::API => write!(f, "{}", "https://api.lerpz.com"),
+			Self::API => write!(f, "https://api.lerpz.com"),
 		}
 	}
 }

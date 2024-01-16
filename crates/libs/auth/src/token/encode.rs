@@ -1,48 +1,49 @@
-use jsonwebtoken::{Algorithm, EncodingKey, Header};
+use jsonwebtoken::{errors::Result as EncodeResult, Algorithm, EncodingKey, Header};
 
-use super::claims::{Claims, JwtAudience, JwtIssuer, JwtUser};
+use super::claims::{JwtAudience, JwtIssuer, JwtUser, TokenClaims};
 
 pub struct AuthToken {
 	header: Header,
-	claims: Claims,
+	claims: TokenClaims,
 }
 
 impl AuthToken {
 	pub fn new(user: impl Into<JwtUser>) -> AuthToken {
 		Self {
+			claims: TokenClaims::new(user.into()),
 			header: Header::default(),
-			claims: Claims::new(user.into()),
 		}
 	}
 
-	pub fn alg(mut self, alg: Algorithm) -> AuthToken {
+	pub fn with_alg(mut self, alg: Algorithm) -> Self {
 		self.header.alg = alg;
 		self
 	}
 
-	pub fn exp(mut self, exp: i64) -> AuthToken {
+	pub fn with_exp(mut self, exp: i64) -> Self {
 		self.claims.exp = exp;
 		self
 	}
 
-	pub fn nbf(mut self, nbf: i64) -> AuthToken {
+	pub fn with_nbf(mut self, nbf: i64) -> Self {
 		self.claims.nbf = nbf;
 		self
 	}
 
-	pub fn iss(mut self, iss: JwtIssuer) -> AuthToken {
-		self.claims.iss = iss;
+	pub fn with_iss(mut self, iss: &[JwtIssuer]) -> Self {
+		self.claims.iss.extend(iss.iter().cloned());
 		self
 	}
 
-	pub fn aud(mut self, aud: JwtAudience) -> AuthToken {
-		self.claims.aud = aud;
+	pub fn with_aud(mut self, aud: &[JwtAudience]) -> Self {
+		self.claims.aud.extend(aud.iter().cloned());
 		self
 	}
 
-	pub fn encode(self, encoding_key: &EncodingKey) -> jsonwebtoken::errors::Result<String> {
+	pub fn encode(self, encoding_key: &EncodingKey) -> EncodeResult<String> {
 		let header = &self.header;
 		let claims = &self.claims;
+		println!("token: {:?}", claims.iss);
 
 		jsonwebtoken::encode(header, claims, encoding_key)
 	}
