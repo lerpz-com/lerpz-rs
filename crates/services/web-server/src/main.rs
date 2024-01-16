@@ -50,6 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 	let app = Router::new()
 		.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiV1Doc::openapi()))
+		.nest("/api/v1/auth", controllers::auth::routes())
 		.layer(service);
 
 	axum::serve(listener, app.into_make_service())

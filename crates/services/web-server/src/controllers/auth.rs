@@ -1,15 +1,17 @@
 use axum::{
 	http::StatusCode,
-	routing::{patch, post},
-	Json, Router,
+	routing::post,
+	Json, Router, response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
+use crate::error::HandlerResult;
+
 pub fn routes() -> Router {
 	Router::new()
-		//.route("/signin", post(signin))
-		.route("/signout", patch(signout))
+        .route("/signin", post(signin))
+		.route("/signout", post(signout))
 		.route("/signup", post(signup))
 }
 
@@ -25,7 +27,7 @@ pub(crate) enum SignInError {
     InvalidCredentials,
 }
 
-#[derive(Deserialize, IntoParams)]
+#[derive(Serialize, Deserialize, IntoParams)]
 pub(crate) struct SignInQuery {
 	email: String,
 	password: String,
@@ -43,11 +45,14 @@ pub(crate) struct SignInQuery {
         (status = StatusCode::UNAUTHORIZED, description = "", body = [SignupError]),
     ),
 )]
-pub(crate) async fn signin(Json(body): Json<SignInQuery>) -> std::result::Result<SignInResponse, ()> {
-	Ok(SignInResponse {
-        access_token: "test".to_string(),
-        refresh_token: "test".to_string()
-    })
+pub(crate) async fn signin(Json(body): Json<SignInQuery>) -> HandlerResult<impl IntoResponse, SignInError> {
+    Ok((
+        StatusCode::OK,
+        Json(SignInResponse {
+            access_token: "test".to_string(),
+            refresh_token: "test".to_string()
+        })
+    ))
 }
 
 #[derive(Deserialize, IntoParams)]
@@ -86,6 +91,6 @@ pub(crate) struct SignUpQuery {
         (status = StatusCode::OK, description = "Successful operation")
     ),
 )]
-pub(crate) async fn signup(Json(body): Json<SignUpQuery>) -> StatusCode {
-	StatusCode::OK
+pub(crate) async fn signup(Json(body): Json<SignUpQuery>) -> HandlerResult<StatusCode> {
+	Ok(StatusCode::OK)
 }

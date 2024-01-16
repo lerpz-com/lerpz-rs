@@ -6,17 +6,16 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-/// A type alias for `Result<T, HandlerError>`.
-/// Used by handlers to return a response or an error.
-pub(crate) type HandlerResult<T, D = (), E = anyhow::Error> =
-	std::result::Result<T, HandlerError<D, E>>;
+/// A type alias for [`Result<T, HandlerError>`].
+///
+/// Used by handlers to return a response or an structured error.
+pub(crate) type HandlerResult<T, D = ()> = std::result::Result<T, HandlerError<D>>;
 
-/// The error response returned to the user.
+/// Represents an error returned by an handler.
 #[derive(Serialize, Deserialize, ToSchema, Debug)]
-pub(crate) struct HandlerError<D = (), E = anyhow::Error>
+pub(crate) struct HandlerError<D>
 where
-	D: Serialize,
-	E: Into<anyhow::Error>,
+	D: Serialize + Send + Sync,
 {
 	/// HTTP status code for the error.
 	#[serde(skip)]
@@ -28,39 +27,50 @@ where
 	/// Other details about the error.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub(crate) detail: Option<D>,
-	/// The acctual error, if needed.
-	/// Should never be sent to the client.
+	/// The acctual error that occured.
+	///
+	/// There might no be an error, in which case
+	/// this field is set to `None`.
+	///
+	/// Should never be sent to the client for
+	/// security reason. This is why it is skipped.
 	#[serde(skip)]
-	pub(crate) error: Option<E>,
-	/// Log id of the error send to the client.
+	pub(crate) error: Option<anyhow::Error>,
+	/// ID of the error send to the client.
+	///
 	/// Used to identify server errors in the logs.
 	/// This is private and should never be set manually.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	log_id: Option<uuid::Uuid>,
 }
 
-/// Converts a `HandlerError` into a response.
-/// Automatically logs server errors.
-impl IntoResponse for HandlerError {
+impl<D> IntoResponse for HandlerError<D>
+where
+	D: Serialize + Send + Sync,
+{
+	/// Converts a [`HandlerError`] into a [Response].
+	///
+	/// Automatically logs server errors.
 	fn into_response(mut self) -> Response {
 		if self.status_code.is_server_error() {
-			self.log_id = uuid::Uuid::new_v4().into();
+			self.log_id = Some(uuid::Uuid::new_v4());
 			if let Some(error) = self.error.as_ref() {
-				tracing::error!("({:?}) - SERVER ERROR: {:?}", self.log_id, self.error);
+				tracing::error!("({:?}) - SERVER ERROR: {}", self.log_id, error);
 			} else {
 				tracing::error!("({:?}) - SERVER ERROR: {:?}", self.log_id, self.message);
 			}
 		}
 
-		Json(self).into_response()
+		(self.status_code, Json(self)).into_response()
 	}
 }
 
-/// Turns any error into a `HandlerError`.
-impl<E> From<E> for HandlerError
+impl<E, D> From<E> for HandlerError<D>
 where
 	E: Into<anyhow::Error>,
+	D: Serialize + Send + Sync,
 {
+	/// Turns any error into a [`HandlerError`].
 	fn from(value: E) -> Self {
 		Self {
 			status_code: StatusCode::INTERNAL_SERVER_ERROR,
@@ -75,9 +85,11 @@ where
 
 impl<D> HandlerError<D>
 where
-	D: Serialize,
+	D: Serialize + Send + Sync,
 {
-	// Error constructor.
+	/// Create a new [`HandlerError`] with status code, header and message.
+	///
+	/// All optional fields are set to `None`.
 	pub(crate) fn new(status_code: StatusCode, header: &str, message: &str) -> Self {
 		Self {
 			status_code,
@@ -89,13 +101,16 @@ where
 		}
 	}
 
-	/// Adds a custom detail to the error.
-	pub(crate) fn with_detail(mut self, detail: D) -> Self {
-		self.detail = Some(detail);
+	/// Adds a custom detail to the [`HandlerError`].
+	pub(crate) fn with_detail<T>(mut self, detail: T) -> Self
+	where
+		T: Into<D>,
+	{
+		self.detail = Some(detail.into());
 		self
 	}
 
-	/// Adds an inner error to the response error.
+	/// Adds an error to the [`HandlerError`].
 	pub(crate) fn with_error<E>(mut self, error: E) -> Self
 	where
 		E: Into<anyhow::Error>,
@@ -109,14 +124,43 @@ where
 mod test {
 	use super::*;
 
+	#[derive(Serialize)]
+	struct TestDetail(i32);
+
+	#[derive(thiserror::Error, Debug)]
+	enum TestError {
+		#[error("test")]
+		TestField,
+	}
+
 	#[test]
-	fn log_internal_server_error() {
-		let error = HandlerError::from(anyhow::Error::msg("test"));
+	fn log_internal_server_error() -> HandlerResult<()> {
+		let error: HandlerError<TestDetail> = HandlerError::new(
+			StatusCode::INTERNAL_SERVER_ERROR,
+			"Internal Server Error",
+			"If this issue persists, please contact the administrator.",
+		)
+		.with_detail(TestDetail(401))
+		.with_error(TestError::TestField);
+
 		// `log_id` should only be set when turned into a response.
 		assert!(error.log_id.is_none());
 		assert!(error.error.is_some());
 
 		let response = error.into_response();
 		assert!(response.status().is_server_error());
+
+		Ok(())
+	}
+
+	#[test]
+	fn any_error_to_handler_error() -> HandlerResult<(), HandlerError<()>> {
+		"123".parse::<i32>()?;
+		Ok(())
+	}
+
+	fn any_error_to_handler_error_2() -> anyhow::Result<()> {
+		"123".parse::<i32>()?;
+		Ok(())
 	}
 }
