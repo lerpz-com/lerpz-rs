@@ -122,8 +122,6 @@ where
 
 #[cfg(test)]
 mod test {
-	use axum::handler::Handler;
-
 	use super::*;
 
 	#[derive(Serialize)]
