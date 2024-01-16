@@ -13,7 +13,7 @@ pub(crate) type HandlerResult<T, D = ()> = std::result::Result<T, HandlerError<D
 
 /// Represents an error returned by an handler.
 #[derive(Serialize, Deserialize, ToSchema, Debug)]
-pub(crate) struct HandlerError<D>
+pub(crate) struct HandlerError<D = ()>
 where
 	D: Serialize + Send + Sync,
 {
@@ -50,14 +50,21 @@ where
 {
 	/// Converts a [`HandlerError`] into a [Response].
 	///
-	/// Automatically logs server errors.
+	/// This automatically logs errors.
+	/// This will also set the `log_id` field
+	/// so the users can report errors to get support.
 	fn into_response(mut self) -> Response {
-		if self.status_code.is_server_error() {
+		if let Some(error) = self.inner.as_ref() {
 			self.log_id = Some(uuid::Uuid::new_v4());
-			if let Some(error) = self.inner.as_ref() {
+			if self.status_code.is_server_error() {
 				tracing::error!("({:?}) - SERVER ERROR: {}", self.log_id, error);
 			} else {
-				tracing::error!("({:?}) - SERVER ERROR: {:?}", self.log_id, self.message);
+				tracing::error!(
+					"({:?}) - UNKOWN ERROR - {}: {}",
+					self.log_id,
+					self.header,
+					self.message
+				);
 			}
 		}
 
@@ -71,6 +78,8 @@ where
 	D: Serialize + Send + Sync,
 {
 	/// Turns any error into a [`HandlerError`].
+	///
+	/// This assumes that the error is an server error.
 	fn from(value: E) -> Self {
 		Self {
 			status_code: StatusCode::INTERNAL_SERVER_ERROR,
@@ -125,23 +134,31 @@ mod test {
 	use super::*;
 
 	#[derive(Serialize)]
-	struct TestDetail(i32);
+	struct TestDetail {
+		test_detail: String,
+	}
 
 	#[derive(thiserror::Error, Debug)]
 	enum TestError {
-		#[error("test")]
-		TestField,
+		#[error("This is a test error")]
+		RandomError,
 	}
 
 	#[test]
 	fn log_internal_server_error() -> HandlerResult<()> {
+		let detail: TestDetail = TestDetail {
+			test_detail: String::from("test"),
+		};
+
+		let inner_error = TestError::RandomError;
+
 		let error: HandlerError<TestDetail> = HandlerError::new(
 			StatusCode::INTERNAL_SERVER_ERROR,
 			"Internal Server Error",
 			"If this issue persists, please contact the administrator.",
 		)
-		.with_detail(TestDetail(401))
-		.with_error(TestError::TestField);
+		.with_detail(detail)
+		.with_error(inner_error);
 
 		// `log_id` should only be set when turned into a response.
 		assert!(error.log_id.is_none());

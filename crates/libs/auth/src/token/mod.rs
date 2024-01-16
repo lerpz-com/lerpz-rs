@@ -20,7 +20,7 @@ mod tests {
 	use crate::token::{
 		claims::{JwtAudience, JwtIssuer, JwtUser},
 		decode::JwtDecoder,
-		encode::JwtEncoder,
+		encode::AuthToken,
 		generate_refresh_token,
 		keys::JwtKeys,
 	};
@@ -36,7 +36,7 @@ mod tests {
 
 		let keys = JwtKeys::from("secret");
 
-		let token = JwtEncoder::new(user)
+		let token = AuthToken::new(user)
 			.aud(JwtAudience::MainWebsite)
 			.iss(JwtIssuer::API)
 			.encode(&keys.encoding)
@@ -63,7 +63,7 @@ mod tests {
 
 		let keys = JwtKeys::from("secret");
 
-		let token = JwtEncoder::new(user)
+		let token = AuthToken::new(user)
 			.aud(JwtAudience::MainWebsite)
 			.iss(JwtIssuer::API)
 			.encode(&keys.encoding)
