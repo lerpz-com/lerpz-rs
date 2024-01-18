@@ -1,6 +1,7 @@
 use utoipa::OpenApi;
 
-use crate::controllers::auth as Auth;
+use crate::controllers::auth::{self as Auth, SignInError};
+use crate::error::HandlerError;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -9,7 +10,9 @@ use crate::controllers::auth as Auth;
 		Auth::signout,
 		Auth::signup,
 	),
-	components(schemas()),
+	components(schemas(
+        HandlerError<SignInError>
+    )),
 	tags(
         (name = "Auth", description = "The authentication API"),
         (name = "Account", description = "The account API"),

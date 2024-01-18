@@ -11,7 +11,7 @@ use utoipa::ToSchema;
 /// Used by handlers to return a response or an structured error.
 pub(crate) type HandlerResult<T, D = ()> = std::result::Result<T, HandlerError<D>>;
 
-/// Represents an error returned by an handler.
+/// Represents an error returned by a handler.
 #[derive(Serialize, Deserialize, ToSchema, Debug)]
 pub(crate) struct HandlerError<D = ()>
 where
@@ -20,11 +20,12 @@ where
 	/// HTTP status code for the error.
 	#[serde(skip)]
 	pub(crate) status_code: StatusCode,
-	/// Error header.
+	/// Error header. Short description of the error.
 	pub(crate) header: String,
-	/// Error message.
+	/// Error message. More details about the error
 	pub(crate) message: String,
-	/// Other details about the error.
+	/// Other details about the error. Does not
+	/// get send to the client if its `None`.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub(crate) detail: Option<D>,
 	/// The acctual error that occured.
@@ -50,21 +51,23 @@ where
 {
 	/// Converts a [`HandlerError`] into a [Response].
 	///
-	/// This automatically logs errors.
-	/// This will also set the `log_id` field
-	/// so the users can report errors to get support.
+	/// This automatically logs errors to std::out.
+	/// This will also set the `log_id` field so
+	/// the users can report errors to get support.
 	fn into_response(mut self) -> Response {
 		if let Some(error) = self.inner.as_ref() {
 			self.log_id = Some(uuid::Uuid::new_v4());
+			let HandlerError {
+				ref log_id,
+				ref header,
+				ref message,
+				..
+			} = self;
+			let log_id = log_id.unwrap();
 			if self.status_code.is_server_error() {
-				tracing::error!("({:?}) - SERVER ERROR: {}", self.log_id, error);
+				tracing::error!("({log_id}) - SERVER ERROR: {error}");
 			} else {
-				tracing::error!(
-					"({:?}) - UNKOWN ERROR - {}: {}",
-					self.log_id,
-					self.header,
-					self.message
-				);
+				tracing::error!("({log_id}) - ERROR - {header}: {message}");
 			}
 		}
 
@@ -133,12 +136,12 @@ where
 mod test {
 	use super::*;
 
-	#[derive(Serialize)]
+	#[derive(Serialize, ToSchema)]
 	struct TestDetail {
 		test_detail: String,
 	}
 
-	#[derive(thiserror::Error, Debug)]
+	#[derive(thiserror::Error, Debug, ToSchema)]
 	enum TestError {
 		#[error("This is a test error")]
 		RandomError,

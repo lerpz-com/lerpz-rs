@@ -6,9 +6,9 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
-use crate::error::HandlerResult;
+use crate::{error::HandlerResult, AppState};
 
-pub fn routes() -> Router {
+pub async fn routes() -> Router<AppState> {
 	Router::new()
         .route("/signin", post(signin))
 		.route("/signout", post(signout))
@@ -41,8 +41,8 @@ pub(crate) struct SignInQuery {
         SignInQuery
     ),
     responses(
-        (status = StatusCode::OK, description = "Successful operation", body = [String]),
-        (status = StatusCode::UNAUTHORIZED, description = "", body = [SignupError]),
+        (status = 200, description = "Successful operation", body = [String]),
+        (status = UNAUTHORIZED, description = "Couldn't sign up", body = [HandlerError<SignupError>]),
     ),
 )]
 pub(crate) async fn signin(Json(body): Json<SignInQuery>) -> HandlerResult<impl IntoResponse, SignInError> {

@@ -6,8 +6,7 @@ use utils::env::get_env;
 ///
 /// This stores the [`Config`] in a [`OnceLock`] so that
 /// it is only generated once. This allows you to call
-/// this function each time you need data from the [`Config`]
-/// without having to worry about performance.
+/// this function each time you need data from the [`Config`].
 pub fn web_config() -> &'static Config {
 	static ENVIRONMENT: OnceLock<Config> = OnceLock::new();
 
@@ -16,17 +15,18 @@ pub fn web_config() -> &'static Config {
 	})
 }
 
-/// Configuratio for the web server.
+/// Configuration for the web server.
 #[allow(non_snake_case)]
 pub struct Config {
-	pub PUBLIC_KEY: String,
-	pub PRIVATE_KEY: String,
-	pub API_ORIGIN: String,
-	// TODO: pub API_ORIGIN: Vec<HeaderValue>,
+	pub(crate) PUBLIC_KEY: String,
+	pub(crate) PRIVATE_KEY: String,
+	pub(crate) API_ORIGIN: String,
+	pub(crate) ACCOUNT_SERVICE_URL: String,
 }
 
 impl Config {
-	/// Generates a new [`Config`] from the environment.
+	/// Generates a new [`Config`] loading from
+	/// variables from the environment.
 	///
 	/// Returns an error if any of the environment
 	/// variables are missing.
@@ -35,6 +35,7 @@ impl Config {
 			PUBLIC_KEY: get_env("PUBLIC_KEY")?,
 			PRIVATE_KEY: get_env("PRIVATE_KEY")?,
 			API_ORIGIN: get_env("API_ORIGIN")?,
+			ACCOUNT_SERVICE_URL: get_env("ACCOUNT_SERVICE_URL")?,
 		})
 	}
 }

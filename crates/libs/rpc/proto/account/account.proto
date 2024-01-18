@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package account;
+
+service Account {
+    rpc GetAccount (AccountLookupInfo) returns (AccountInfoResponse);
+}
+
+message AccountLookupInfo {
+    string email = 2;
+}
+
+message AccountInfoResponse {
+    string name = 1;
+    string email = 2;
+}

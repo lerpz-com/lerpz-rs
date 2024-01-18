@@ -1,1 +1,1 @@
-tonic::include_proto!("hello");
+tonic::include_proto!("account");
