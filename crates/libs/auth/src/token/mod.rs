@@ -18,7 +18,7 @@ mod tests {
 	use core::models::user::UserRole;
 
 	use crate::token::{
-		claims::{JwtAudience, JwtIssuer, JwtUser},
+		claims::{JwtAudience, JwtIssuer, TokenUser},
 		decode::AuthTokenValidator,
 		encode::AuthToken,
 		generate_refresh_token,
@@ -27,7 +27,7 @@ mod tests {
 
 	#[test]
 	fn encode_and_decode() {
-		let user = JwtUser {
+		let user = TokenUser {
 			id: uuid::Uuid::new_v4(),
 			username: "test".to_string(),
 			email: "test@test.com".to_string(),
@@ -56,7 +56,7 @@ mod tests {
 
 	#[test]
 	pub fn invalid_iss_and_aud() {
-		let user = JwtUser {
+		let user = TokenUser {
 			id: uuid::Uuid::new_v4(),
 			username: "test".to_string(),
 			email: "test@test.com".to_string(),

@@ -1,6 +1,6 @@
 use jsonwebtoken::{errors::Result as EncodeResult, Algorithm, EncodingKey, Header};
 
-use super::claims::{JwtAudience, JwtIssuer, JwtUser, TokenClaims};
+use super::claims::{JwtAudience, JwtIssuer, TokenClaims, TokenUser};
 
 pub struct AuthToken {
 	header: Header,
@@ -8,7 +8,7 @@ pub struct AuthToken {
 }
 
 impl AuthToken {
-	pub fn new(user: impl Into<JwtUser>) -> AuthToken {
+	pub fn new(user: impl Into<TokenUser>) -> AuthToken {
 		Self {
 			claims: TokenClaims::new(user.into()),
 			header: Header::default(),

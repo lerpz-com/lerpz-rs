@@ -16,11 +16,11 @@ pub struct TokenClaims {
 	pub iss: HashSet<JwtIssuer>,
 	#[serde(skip_serializing_if = "HashSet::is_empty")]
 	pub aud: HashSet<JwtAudience>,
-	pub user: JwtUser,
+	pub user: TokenUser,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct JwtUser {
+pub struct TokenUser {
 	pub id: uuid::Uuid,
 	pub username: String,
 	pub email: String,
@@ -46,7 +46,7 @@ pub enum JwtIssuer {
 }
 
 impl TokenClaims {
-	pub fn new(user: impl Into<JwtUser>) -> Self {
+	pub fn new(user: impl Into<TokenUser>) -> Self {
 		Self {
 			sub: uuid::Uuid::new_v4(),
 			exp: chrono::Utc::now().timestamp() + 60 * 15,
@@ -59,7 +59,7 @@ impl TokenClaims {
 	}
 }
 
-impl From<User> for JwtUser {
+impl From<User> for TokenUser {
 	fn from(user: User) -> Self {
 		Self {
 			id: user.id,
@@ -70,8 +70,8 @@ impl From<User> for JwtUser {
 	}
 }
 
-impl From<JwtUser> for TokenClaims {
-	fn from(user: JwtUser) -> Self {
+impl From<TokenUser> for TokenClaims {
+	fn from(user: TokenUser) -> Self {
 		Self {
 			sub: uuid::Uuid::new_v4(),
 			exp: chrono::Utc::now().timestamp() + 60 * 15,
