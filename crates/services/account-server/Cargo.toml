@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 # - Local
+auth = { path = "../../libs/auth", features = ["hashing"] }
 rpc = { path = "../../libs/rpc", features = ["server"] }
 # - Async
 tonic = "0.10.2"

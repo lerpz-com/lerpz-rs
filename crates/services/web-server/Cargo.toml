@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 # -- Local
-auth = { path = "../../libs/auth" }
+auth = { path = "../../libs/auth", features = ["token"] }
 rpc = { path = "../../libs/rpc", features = ["client"] }
 utils = { path = "../../libs/utils" }
 # -- Web

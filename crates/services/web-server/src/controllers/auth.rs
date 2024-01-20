@@ -8,27 +8,22 @@ use utoipa::{IntoParams, ToSchema};
 
 use crate::{error::HandlerResult, AppState};
 
+
 pub async fn routes() -> Router<AppState> {
 	Router::new()
-        .route("/signin", post(signin))
-		.route("/signout", post(signout))
-		.route("/signup", post(signup))
+        .route("/signin", post(login))
+		.route("/signout", post(logout))
+		.route("/signup", post(register))
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
-pub(crate) struct SignInResponse {
+pub(crate) struct LoginResponse {
     access_token: String,
     refresh_token: String
 }
 
-#[derive(Serialize, Deserialize, ToSchema)]
-pub(crate) enum SignInError {
-    InternalServerError,
-    InvalidCredentials,
-}
-
 #[derive(Serialize, Deserialize, IntoParams)]
-pub(crate) struct SignInQuery {
+pub(crate) struct LoginQuery {
 	email: String,
 	password: String,
 }
@@ -36,19 +31,19 @@ pub(crate) struct SignInQuery {
 
 #[utoipa::path(
     post,
-    path = "/api/v1/auth/signin",
+    path = "/api/v1/auth/login",
     params(
-        SignInQuery
+        LoginQuery
     ),
     responses(
         (status = 200, description = "Successful operation", body = [String]),
-        (status = UNAUTHORIZED, description = "Couldn't sign up", body = [HandlerError<SignupError>]),
+        (status = UNAUTHORIZED, description = "Couldn't login", body = [HandlerError]),
     ),
 )]
-pub(crate) async fn signin(Json(body): Json<SignInQuery>) -> HandlerResult<impl IntoResponse, SignInError> {
+pub(crate) async fn login(Json(body): Json<LoginQuery>) -> HandlerResult<impl IntoResponse> {
     Ok((
         StatusCode::OK,
-        Json(SignInResponse {
+        Json(LoginResponse {
             access_token: "test".to_string(),
             refresh_token: "test".to_string()
         })
@@ -56,26 +51,26 @@ pub(crate) async fn signin(Json(body): Json<SignInQuery>) -> HandlerResult<impl 
 }
 
 #[derive(Deserialize, IntoParams)]
-pub(crate) struct SignOutQuery {
+pub(crate) struct LogoutQuery {
 	refresh_token: String,
 }
 
 #[utoipa::path(
     post,
-    path = "/api/v1/auth/signout",
+    path = "/api/v1/auth/logout",
     params(
-       SignOutQuery 
+       LogoutQuery 
     ),
     responses(
         (status = StatusCode::OK, description = "Successful operation"),
     ),
 )]
-pub(crate) async fn signout(Json(body): Json<SignOutQuery>) -> StatusCode {
+pub(crate) async fn logout(Json(body): Json<LogoutQuery>) -> StatusCode {
 	StatusCode::OK
 }
 
 #[derive(Deserialize, IntoParams)]
-pub(crate) struct SignUpQuery {
+pub(crate) struct RegisterQuery {
 	email: String,
 	password: String,
 	username: String,
@@ -83,14 +78,14 @@ pub(crate) struct SignUpQuery {
 
 #[utoipa::path(
     post,
-    path = "/api/v1/auth/signup",
+    path = "/api/v1/auth/register",
     params(
-        SignUpQuery
+        RegisterQuery
     ),
     responses(
         (status = StatusCode::OK, description = "Successful operation")
     ),
 )]
-pub(crate) async fn signup(Json(body): Json<SignUpQuery>) -> HandlerResult<StatusCode> {
+pub(crate) async fn register(Json(body): Json<RegisterQuery>) -> HandlerResult<StatusCode> {
 	Ok(StatusCode::OK)
 }

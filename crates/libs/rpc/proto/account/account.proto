@@ -2,15 +2,43 @@ syntax = "proto3";
 
 package account;
 
+
 service Account {
-    rpc GetAccount (AccountLookupInfo) returns (AccountInfoResponse);
+    rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+    rpc GetAccount(GetAccountRequest) returns (GetAccountResponse);
+    rpc ValidateCredentials(ValidateCredentialsRequest) returns (ValidateCredentialsResponse);
 }
 
-message AccountLookupInfo {
-    string email = 2;
+message CreateAccountRequest {
+    string username = 1;
+    string password = 2;
+    string email = 3;
 }
 
-message AccountInfoResponse {
-    string name = 1;
-    string email = 2;
+message CreateAccountResponse {
+    string header = 1;
+    string message = 2;
+
+}
+
+message GetAccountRequest {
+    string username = 1;
+}
+
+message GetAccountResponse {
+    string header = 1;
+    string message = 2;
+    string username = 3;
+    string email = 4;
+}
+
+message ValidateCredentialsRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message ValidateCredentialsResponse {
+    string header = 1;
+    string message = 2;
+    string token = 3;
 }

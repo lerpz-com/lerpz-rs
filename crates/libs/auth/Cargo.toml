@@ -11,3 +11,8 @@ rand = "0.8"
 serde = "1.0"
 uuid = { version = "1.6", features = ["v4", "serde"] }
 serde_json = "1.0.111"
+rust-argon2 = "2.1.0"
+
+[features]
+token = []
+hashing = []
