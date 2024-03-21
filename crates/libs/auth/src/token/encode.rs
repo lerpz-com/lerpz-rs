@@ -43,7 +43,6 @@ impl AuthToken {
 	pub fn encode(self, encoding_key: &EncodingKey) -> EncodeResult<String> {
 		let header = &self.header;
 		let claims = &self.claims;
-
 		jsonwebtoken::encode(header, claims, encoding_key)
 	}
 }

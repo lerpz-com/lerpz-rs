@@ -13,10 +13,10 @@ pub struct AuthTokenValidator {
 }
 
 impl AuthTokenValidator {
-	/// Creates a new `AuthTokenValidator` with the given token.
+	/// Creates a new [`AuthTokenValidator`] with the given token.
 	///
-	/// The default algorithm is `EdDSA` for validation.
-	/// This can be changed with the `with_alg()` method.
+	/// The default algorithm is `EdDSA` for validation. This can be
+	/// changed with the `with_alg()` method.
 	pub fn new(token: impl Into<String>) -> Self {
 		Self {
 			token: token.into(),
@@ -60,8 +60,6 @@ impl AuthTokenValidator {
 	pub fn decode(self, decoding_key: &DecodingKey) -> DecodeResult<TokenData<TokenClaims>> {
 		let token = &self.token;
 		let validation = &self.validation;
-		println!("token: {:?}", validation.aud);
-
-		jsonwebtoken::decode::<TokenClaims>(&token, decoding_key, &validation)
+		jsonwebtoken::decode(&token, decoding_key, &validation)
 	}
 }

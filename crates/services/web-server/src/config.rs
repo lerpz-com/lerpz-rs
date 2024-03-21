@@ -25,11 +25,11 @@ pub struct Config {
 }
 
 impl Config {
-	/// Generates a new [`Config`] loading from
-	/// variables from the environment.
+	/// Generates a new [`Config`] loading from variables
+	/// from the environment.
 	///
-	/// Returns an error if any of the environment
-	/// variables are missing.
+	/// Returns an error if any of the environment variables
+	/// are missing.
 	pub fn from_env() -> utils::env::Result<Config> {
 		Ok(Config {
 			PUBLIC_KEY: get_env("PUBLIC_KEY")?,

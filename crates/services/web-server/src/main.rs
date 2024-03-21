@@ -24,11 +24,6 @@ mod controllers;
 mod error;
 mod middleware;
 
-#[derive(Clone)]
-pub struct AppState {
-	pub account_conn: AccountClient<Channel>,
-}
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
 	tracing_subscriber::fmt()
@@ -52,17 +47,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 		.layer(CookieManagerLayer::new())
 		.layer(cors);
 
-	let app_state = AppState {
-		account_conn: AccountClient::connect(web_config().ACCOUNT_SERVICE_URL.clone())
-			.await
-			.unwrap(),
-	};
-
 	let app = Router::new()
 		.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiV1Doc::openapi()))
 		.nest("/api/v1/auth", controllers::auth::routes().await)
-		.layer(service)
-		.with_state(app_state);
+		.layer(service);
 
 	axum::serve(listener, app.into_make_service())
 		.with_graceful_shutdown(shutdown_signal())

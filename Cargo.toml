@@ -8,5 +8,4 @@ members = [
     "crates/libs/utils",
     # Services
     "crates/services/web-server",
-    "crates/services/account-server"
 ]

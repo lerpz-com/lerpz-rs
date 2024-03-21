@@ -10,9 +10,7 @@ use crate::error::HandlerError;
 		Auth::logout,
 		Auth::register,
 	),
-	components(schemas(
-        HandlerError
-    )),
+	components(schemas()),
 	tags(
         (name = "Auth", description = "The authentication API"),
         (name = "Account", description = "The account API"),
